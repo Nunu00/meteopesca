@@ -325,16 +325,19 @@ struct ContentView: View {
     }
     
     private func calculateForecast() {
-        // 1. Calculate Sun/Moon ephemerides via SwiftAA
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: selectedDate)
         let coord = selectedLocation.coordinate
-        let astro = AstronomyEngine.calculateAstronomy(date: selectedDate, coordinate: coord)
+        
+        // 1. Calculate Sun/Moon ephemerides via SwiftAA
+        let astro = AstronomyEngine.calculateAstronomy(date: startOfDay, coordinate: coord)
         
         // 2. Generate tides offline via local harmonic constituent database
-        let tides = TideEngine.calculateDailyTides(date: selectedDate, coordinate: coord)
+        let tides = TideEngine.calculateDailyTides(date: startOfDay, coordinate: coord)
         
         // 3. Evaluate solunar rules and fish activity scoring
         let forecastResult = RulesEngine.evaluateForecast(
-            date: selectedDate,
+            date: startOfDay,
             location: selectedLocation,
             sunrise: astro.sunrise,
             sunset: astro.sunset,
@@ -484,8 +487,9 @@ struct TideChartView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                     
-                    let yOffset: CGFloat = event.type == .alta ? -18 : 8
-                    context.draw(text, at: CGPoint(x: drawX, y: drawY + yOffset), anchor: .center)
+                    let yOffset: CGFloat = event.type == .alta ? -12 : 12
+                    let anchor: Alignment = event.type == .alta ? .bottom : .top
+                    context.draw(text, at: CGPoint(x: drawX, y: drawY + yOffset), anchor: anchor)
                 }
             }
             
