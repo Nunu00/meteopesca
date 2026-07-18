@@ -57,19 +57,17 @@ public class AstronomyEngine {
         let moonAntiTransit = oppositeMoonTimes.transitTime?.date
         
         // 4. Moon Phase & Illumination
-        let age = moon.age()
-        let illumination = moon.illuminatedFraction() * 100.0
-        
-        // Phase name based on phase angle (difference between Moon and Sun longitude)
         let sunLong = sun.eclipticCoordinates.lambda
         let moonLong = moon.eclipticCoordinates.lambda
         var diffLong = moonLong.value - sunLong.value
         if diffLong < 0 { diffLong += 360.0 }
         
+        let age = (diffLong / 360.0) * 29.53059
+        let illumination = moon.illuminatedFraction() * 100.0
+        
         let phaseName: String
         switch diffLong {
         case 0..<22.5, 337.5...360.0:
-            diffLong = diffLong // no-op
             phaseName = "Luna Nuova"
         case 22.5..<67.5:
             phaseName = "Luna Crescente (Falce)"
