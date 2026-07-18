@@ -488,7 +488,7 @@ struct TideChartView: View {
                         .foregroundColor(.white)
                     
                     let yOffset: CGFloat = event.type == .alta ? -12 : 12
-                    let anchor: Alignment = event.type == .alta ? .bottom : .top
+                    let anchor: UnitPoint = event.type == .alta ? .bottom : .top
                     context.draw(text, at: CGPoint(x: drawX, y: drawY + yOffset), anchor: anchor)
                 }
             }
