@@ -187,7 +187,6 @@ public class RulesEngine {
         score *= weather.multiplier()
         
         // Bell-shaped Water Temp factor (Gaussian optimal performance curve at 20°C with sigma=5.0)
-        let fWaterTemp = exp(-pow(waterTempCelsius - tOpt, 2.0) / (2.0 * pow(sigma, 2.0)))
         score *= fWaterTemp
         score = min(score, 1.8) // apply stabilizing cap to prevent extreme inflation
         
