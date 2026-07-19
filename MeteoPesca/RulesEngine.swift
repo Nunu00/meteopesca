@@ -118,8 +118,7 @@ public class RulesEngine {
             }
             
             // Scientific Tidal Phase Activity Factor (Common Goby & Reef fish studies)
-            let midHourDate = intervalStart.addingTimeInterval(1800)
-            let tidalFactor = calculateTidalActivityFactor(date: midHourDate, tides: tides)
+            let tidalFactor = calculateTidalActivityFactor(date: midHourDate, tides: tides, coordinate: location.coordinate, maxAmplitude: maxAmplitude)
             hourScore *= tidalFactor
             
             // Map score to Activity level
@@ -221,48 +220,48 @@ public class RulesEngine {
         )
     }
     
-    private static func calculateTidalActivityFactor(date: Date, tides: [TideEvent]) -> Double {
-        var minDiffHigh: Double? = nil
-        var minDiffLow: Double? = nil
+    private static func calculateTidalActivityFactor(
+        date: Date,
+        tides: [TideEvent],
+        coordinate: Coordinate,
+        maxAmplitude: Double
+    ) -> Double {
+        var minDiffMinutes = Double.greatestFiniteMagnitude
+        var nearestEvent: TideEvent? = nil
         
         for event in tides {
-            let diffMinutes = event.time.timeIntervalSince(date) / 60.0
-            if event.type == .alta {
-                if minDiffHigh == nil || abs(diffMinutes) < abs(minDiffHigh!) {
-                    minDiffHigh = diffMinutes
-                }
-            } else {
-                if minDiffLow == nil || abs(diffMinutes) < abs(minDiffLow!) {
-                    minDiffLow = diffMinutes
-                }
+            let diff = event.time.timeIntervalSince(date) / 60.0
+            if abs(diff) < abs(minDiffMinutes) {
+                minDiffMinutes = diff
+                nearestEvent = event
             }
         }
         
-        guard let mHigh = minDiffHigh, let mLow = minDiffLow else { return 1.0 }
+        // 1. Calculate rate of change of tide height (current velocity proxy)
+        let dateOneHourAgo = date.addingTimeInterval(-3600)
+        let currentLevel = TideEngine.calculateHeight(at: date, coordinate: coordinate)
+        let previousLevel = TideEngine.calculateHeight(at: dateOneHourAgo, coordinate: coordinate)
         
-        // 1. Slack water around Low Tide (within 30 minutes of low tide)
-        if abs(mLow) <= 30.0 {
-            return 0.7
+        let rateOfChange = abs(currentLevel - previousLevel)
+        
+        // Normalize by daily max amplitude to make the current velocity factor profile independent of local tidal range
+        let normalizedRate = rateOfChange / max(maxAmplitude, 0.05)
+        
+        // Velocity factor: up to 0.4 bonus at max current speed (midpoint of cycle)
+        let velocityFactor = 1.0 + min(normalizedRate * 0.8, 0.4)
+        
+        // 2. Transition (cambio marea): bonus extra in the 90 minutes BEFORE the extreme (rising or falling towards it)
+        var transitionBonus = 0.0
+        if minDiffMinutes > 0 && minDiffMinutes <= 90.0 {
+            transitionBonus = 0.2
         }
         
-        // 2. Peak high tide window (within 60 minutes of high tide)
-        if abs(mHigh) <= 60.0 {
-            return 1.5
+        // 3. Slack water penalty: if we are within 30 minutes of low tide, we apply a penalty.
+        var slackMultiplier = 1.0
+        if let nearest = nearestEvent, nearest.type == .bassa && abs(minDiffMinutes) <= 30.0 {
+            slackMultiplier = 0.7
         }
         
-        // 3. Determine if current phase is rising (flood) or falling (ebb)
-        let isEbb = mHigh < 0 && mLow > 0
-        
-        if isEbb {
-            // Falling tide (ebb)
-            if abs(mHigh) <= 180.0 {
-                return 1.1 // ebbEarly: first 3 hours after high tide peak window
-            } else {
-                return 1.3 // ebbLate: last hours before low tide (funnel effect)
-            }
-        } else {
-            // Rising tide (flood)
-            return 1.2 // floodMidCycle
-        }
+        return (velocityFactor + transitionBonus) * slackMultiplier
     }
 }
