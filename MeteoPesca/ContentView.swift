@@ -318,11 +318,31 @@ struct ContentView: View {
                                     let daysDiff = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: date)).day ?? 0
                                     let isForecastAvailable = (daysDiff >= -1 && daysDiff <= 7)
                                     
-                                    // Pre-calculate style properties to prevent Swift compiler type-checking time-out
-                                    let textColor: Color = isSelected ? .black : (isToday ? .teal : (isForecastAvailable ? .white : .white.opacity(0.65)))
-                                    let cellBg: Color = isSelected ? .white : (isForecastAvailable ? colorForActivity(activity).opacity(0.3) : Color.white.opacity(0.02))
-                                    let strokeColor: Color = isToday && !isSelected ? Color.teal : colorForActivity(activity).opacity(isForecastAvailable ? 1.0 : 0.45)
-                                    let dashPattern: [CGFloat] = isForecastAvailable ? [] : [4, 3]
+                                    // Extremely explicit type-checking values
+                                    var textColor: Color = .white
+                                    if isSelected {
+                                        textColor = .black
+                                    } else if isToday {
+                                        textColor = .teal
+                                    } else if !isForecastAvailable {
+                                        textColor = Color.white.opacity(0.65)
+                                    }
+                                    
+                                    var cellBg: Color = Color.white.opacity(0.02)
+                                    if isSelected {
+                                        cellBg = .white
+                                    } else if isForecastAvailable {
+                                        cellBg = colorForActivity(activity).opacity(0.3)
+                                    }
+                                    
+                                    var strokeColor: Color = Color.teal
+                                    if !isToday || isSelected {
+                                        let baseColor = colorForActivity(activity)
+                                        let borderOpacity = isForecastAvailable ? 1.0 : 0.45
+                                        strokeColor = baseColor.opacity(borderOpacity)
+                                    }
+                                    
+                                    let dashPattern: [CGFloat] = isForecastAvailable ? [] : [4.0, 3.0]
                                     
                                     VStack(spacing: 2) {
                                         Text("\(Calendar.current.component(.day, from: date))")
