@@ -873,17 +873,19 @@ struct ContentView: View {
         let isToday = Calendar.current.isDate(date, inSameDayAs: Date())
         let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
         
-        // Text color: Selected is black, otherwise white.
-        let textColor: Color = isSelected ? .black : (isToday ? .teal : .white)
+        // Text color: Selected is black, Forecast days are white, Climatological days are faded white.
+        let textColor: Color = isSelected ? .black : (isForecastAvailable ? .white : .white.opacity(0.6))
         
-        // Background: Selected is solid white, otherwise transparent.
-        let cellBg: Color = isSelected ? .white : Color.white.opacity(0.02)
-        
-        // Border: Today is teal, otherwise the activity color
-        let strokeColor: Color = isToday ? .teal : colorForActivity(activity)
-        let strokeWidth: CGFloat = isSelected ? 2.0 : 1.0
-        
-        let dashPattern: [CGFloat] = isSelected ? [] : (isForecastAvailable ? [] : [3.0, 3.0])
+        // Background View
+        let cellBgView = Group {
+            if isSelected {
+                Color.white
+            } else if isForecastAvailable {
+                colorForActivity(activity).opacity(0.8)
+            } else {
+                colorForActivity(activity).saturation(0.4).opacity(0.18)
+            }
+        }
         
         return VStack(spacing: 2) {
             Text("\(Calendar.current.component(.day, from: date))")
@@ -893,27 +895,21 @@ struct ContentView: View {
             
             if isToday {
                 Circle()
-                    .fill(isSelected ? Color.black : Color.teal)
+                    .fill(isSelected ? Color.black : (isForecastAvailable ? Color.white : Color.teal))
                     .frame(width: 4, height: 4)
             }
         }
         .frame(height: 32)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(cellBg)
-        )
+        .background(cellBgView)
+        .cornerRadius(8)
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(
-                    strokeColor,
-                    style: StrokeStyle(
-                        lineWidth: strokeWidth,
-                        lineCap: .round,
-                        lineJoin: .round,
-                        dash: dashPattern
-                    )
-                )
+            Group {
+                if isToday && !isSelected {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.teal, lineWidth: 2.0)
+                }
+            }
         )
         .onTapGesture {
             selectedDate = date
