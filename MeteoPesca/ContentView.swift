@@ -353,10 +353,11 @@ struct ContentView: View {
                                             selectedDate = date
                                             calculateForecast()
                                             updateWeatherAutomatically()
-                                        }
+                                }
                             }
-                            
-                            // Legenda del calendario
+                        }
+                        
+                        // Legenda del calendario
                             VStack(alignment: .leading, spacing: 8) {
                                 Divider()
                                     .background(Color.white.opacity(0.1))
