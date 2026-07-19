@@ -114,6 +114,15 @@ public struct DailyForecast: Identifiable, Codable {
     // Ratings
     public var dailyActivity: ActivityLevel
     public var hourlyIntervals: [HourlyInterval]
+    
+    // Detailed factor breakdown
+    public var rawScore: Double
+    public var moonPhaseFactor: Double
+    public var moonDistanceFactor: Double
+    public var tideCoeffFactor: Double
+    public var solunarOverlapFactor: Double
+    public var weatherFactorVal: Double
+    public var waterTempFactor: Double
 }
 
 public struct WeatherFactor: Codable, Hashable {

@@ -223,7 +223,14 @@ public class RulesEngine {
             maxTideAmplitude: maxAmplitude,
             solunarPeriods: periods,
             dailyActivity: dailyLevel,
-            hourlyIntervals: intervals
+            hourlyIntervals: intervals,
+            rawScore: score,
+            moonPhaseFactor: fPhase,
+            moonDistanceFactor: fDist,
+            tideCoeffFactor: fCoeff,
+            solunarOverlapFactor: fOverlap,
+            weatherFactorVal: weatherMult,
+            waterTempFactor: fWaterTemp
         )
     }
     

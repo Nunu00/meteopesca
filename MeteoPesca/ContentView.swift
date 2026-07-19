@@ -168,6 +168,7 @@ struct ContentView: View {
                                     }
                                     Slider(value: $waterTempCelsius, in: 5...35, step: 1)
                                         .accentColor(.teal)
+                                        .disabled(true)
                                     Text(waterTempCelsius < 15 ? "Metabolismo ridotto (freddo)" : (waterTempCelsius > 25 ? "Pesci letargici (caldo)" : "Condizione ottimale (Q10)"))
                                         .font(.caption2)
                                         .foregroundColor(.white.opacity(0.5))
@@ -187,6 +188,7 @@ struct ContentView: View {
                                     }
                                     Slider(value: $cloudCover, in: 0...100, step: 5)
                                         .accentColor(.cyan)
+                                        .disabled(true)
                                 }
                                 
                                 Divider().background(Color.white.opacity(0.1))
@@ -203,6 +205,7 @@ struct ContentView: View {
                                     }
                                     Slider(value: $windDirectionChange, in: 0...180, step: 5)
                                         .accentColor(.orange)
+                                        .disabled(true)
                                 }
                                 
                                 Divider().background(Color.white.opacity(0.1))
@@ -219,6 +222,7 @@ struct ContentView: View {
                                     }
                                     Slider(value: $swellHeight, in: 0.0...3.0, step: 0.1)
                                         .accentColor(.blue)
+                                        .disabled(true)
                                 }
                                 
                                 Divider().background(Color.white.opacity(0.1))
@@ -235,7 +239,15 @@ struct ContentView: View {
                                     }
                                     Slider(value: $surfaceTempDelta24h, in: -3.0...3.0, step: 0.1)
                                         .accentColor(surfaceTempDelta24h < -1.5 ? .green : .white)
+                                        .disabled(true)
                                 }
+                                
+                                Divider().background(Color.white.opacity(0.1))
+                                
+                                Text("* Rilevamenti costieri e satellitari aggiornati via Open-Meteo.")
+                                    .font(.caption2)
+                                    .italic()
+                                    .foregroundColor(.white.opacity(0.4))
                             }
                             .padding()
                             .background(Color.white.opacity(0.05))
@@ -275,6 +287,12 @@ struct ContentView: View {
                                 }
                                 .padding(.top, 4)
                                 
+                                Text("Indice di Efficacia: \(Int(round((forecast.rawScore / 1.8) * 100.0)))%")
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(colorForActivity(forecast.dailyActivity))
+                                    .padding(.top, 2)
+                                
                                 Text("Escursione max marea: \(String(format: "%.2f", forecast.maxTideAmplitude)) m")
                                     .font(.footnote)
                                     .foregroundColor(.white.opacity(0.7))
@@ -293,6 +311,32 @@ struct ContentView: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16)
                                     .stroke(colorForActivity(forecast.dailyActivity).opacity(0.3), lineWidth: 1)
+                            )
+                            .padding(.horizontal)
+                            
+                            // 2b. Detailed Factor Breakdown Section
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Analisi dei Fattori Costieri & Lunari")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .tracking(0.5)
+                                
+                                VStack(spacing: 8) {
+                                    FactorRow(name: "Fase Lunare (Novilunio/Plenilunio)", value: String(format: "%.0f%%", forecast.moonPhaseFactor * 100.0), icon: "moon.stars.fill", color: .yellow)
+                                    FactorRow(name: "Gravità Luna (Apogeo/Perigeo)", value: String(format: "%.0f%%", forecast.moonDistanceFactor * 100.0), icon: "scalemass.fill", color: .purple)
+                                    FactorRow(name: "Coefficiente di Marea (Ampiezza)", value: String(format: "%.0f%%", forecast.tideCoeffFactor * 100.0), icon: "water.waves", color: .blue)
+                                    FactorRow(name: "Allineamenti Solunari (Coincidenze)", value: String(format: "%.0f%%", forecast.solunarOverlapFactor * 100.0), icon: "sparkles", color: .orange)
+                                    FactorRow(name: "Fattori Meteo Compositi", value: String(format: "%.0f%%", forecast.weatherFactorVal * 100.0), icon: "cloud.sun.fill", color: .cyan)
+                                    FactorRow(name: "Temperatura Acqua (Metabolismo Q10)", value: String(format: "%.0f%%", forecast.waterTempFactor * 100.0), icon: "thermometer.medium", color: .teal)
+                                }
+                            }
+                            .padding()
+                            .background(Color.white.opacity(0.04))
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
                             )
                             .padding(.horizontal)
                             
@@ -709,6 +753,30 @@ extension Color {
     static let amberBadge = Color(red: 255/255, green: 175/255, blue: 64/255)
     static let cyanBadge = Color(red: 0/255, green: 242/255, blue: 254/255)
     static let amberText = Color(red: 255/255, green: 175/255, blue: 64/255)
+}
+
+struct FactorRow: View {
+    let name: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .frame(width: 24)
+            Text(name)
+                .foregroundColor(.white.opacity(0.7))
+                .font(.footnote)
+            Spacer()
+            Text(value)
+                .foregroundColor(.white)
+                .font(.footnote)
+                .fontWeight(.bold)
+        }
+        .padding(.vertical, 4)
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {
