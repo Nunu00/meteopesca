@@ -873,19 +873,17 @@ struct ContentView: View {
         let isToday = Calendar.current.isDate(date, inSameDayAs: Date())
         let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
         
-        // Text color: Selected is black, Forecast days are white, Climatological days are faded white.
-        let textColor: Color = isSelected ? .black : (isForecastAvailable ? .white : .white.opacity(0.6))
+        // Text color: Selected is black, otherwise white.
+        let textColor: Color = isSelected ? .black : (isToday ? .teal : .white)
         
-        // Background View
-        let cellBgView = Group {
-            if isSelected {
-                Color.white
-            } else if isForecastAvailable {
-                colorForActivity(activity).opacity(0.8)
-            } else {
-                colorForActivity(activity).saturation(0.4).opacity(0.18)
-            }
-        }
+        // Background: Selected is solid white, otherwise transparent.
+        let cellBg: Color = isSelected ? .white : Color.white.opacity(0.02)
+        
+        // Border: Today is teal, otherwise the activity color
+        let strokeColor: Color = isToday ? .teal : colorForActivity(activity)
+        let strokeWidth: CGFloat = isSelected ? 2.0 : 1.0
+        
+        let dashPattern: [CGFloat] = isSelected ? [] : (isForecastAvailable ? [] : [3.0, 3.0])
         
         return VStack(spacing: 2) {
             Text("\(Calendar.current.component(.day, from: date))")
@@ -895,21 +893,27 @@ struct ContentView: View {
             
             if isToday {
                 Circle()
-                    .fill(isSelected ? Color.black : (isForecastAvailable ? Color.white : Color.teal))
+                    .fill(isSelected ? Color.black : Color.teal)
                     .frame(width: 4, height: 4)
             }
         }
         .frame(height: 32)
         .frame(maxWidth: .infinity)
-        .background(cellBgView)
-        .cornerRadius(8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(cellBg)
+        )
         .overlay(
-            Group {
-                if isToday && !isSelected {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.teal, lineWidth: 2.0)
-                }
-            }
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(
+                    strokeColor,
+                    style: StrokeStyle(
+                        lineWidth: strokeWidth,
+                        lineCap: .round,
+                        lineJoin: .round,
+                        dash: dashPattern
+                    )
+                )
         )
         .onTapGesture {
             selectedDate = date
@@ -924,54 +928,57 @@ struct ContentView: View {
                 .background(Color.white.opacity(0.1))
                 .padding(.vertical, 4)
             
-            // Row 1: Previsioni Reali, Stima Climatologica, Oggi
-            HStack(spacing: 12) {
-                HStack(spacing: 4) {
-                    Color.teal.opacity(0.8)
-                        .frame(width: 12, height: 12)
-                        .cornerRadius(3)
-                    Text("Previsioni Reali")
-                        .font(.system(size: 9))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                
-                HStack(spacing: 4) {
-                    Color.teal.saturation(0.4).opacity(0.18)
-                        .frame(width: 12, height: 12)
-                        .cornerRadius(3)
-                    Text("Stima Climatologica")
-                        .font(.system(size: 9))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color.teal)
-                        .frame(width: 6, height: 6)
-                    Text("Oggi")
-                        .font(.system(size: 9))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-            }
-            
-            // Row 2: Efficacia Pesca colors horizontally without wrapping
-            HStack(spacing: 6) {
-                Text("Efficacia Pesca:")
-                    .font(.system(size: 9))
-                    .foregroundColor(.white.opacity(0.5))
-                
-                ForEach(ActivityLevel.allCases, id: \.self) { level in
-                    HStack(spacing: 2) {
+            HStack(alignment: .top, spacing: 20) {
+                // Column 1: Previsioni Reali, Stima Climatologica, Oggi
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .stroke(Color.white.opacity(0.8), lineWidth: 1)
+                            .frame(width: 12, height: 12)
+                        Text("Previsioni Reali")
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    
+                    HStack(spacing: 6) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .stroke(Color.white.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                            .frame(width: 12, height: 12)
+                        Text("Stima Climatologica")
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    
+                    HStack(spacing: 6) {
                         Circle()
-                            .fill(colorForActivity(level))
+                            .fill(Color.teal)
                             .frame(width: 6, height: 6)
-                        Text(level.rawValue)
-                            .font(.system(size: 8))
+                        Text("Oggi (Giorno corrente)")
+                            .font(.system(size: 9))
                             .foregroundColor(.white.opacity(0.7))
                     }
                 }
+                
+                // Column 2: Efficacia Pesca
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Efficacia Pesca:")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.5))
+                    
+                    HStack(spacing: 4) {
+                        ForEach(ActivityLevel.allCases, id: \.self) { level in
+                            HStack(spacing: 2) {
+                                Circle()
+                                    .fill(colorForActivity(level))
+                                    .frame(width: 6, height: 6)
+                                Text(level.rawValue)
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                        }
+                    }
+                }
             }
-            .padding(.top, 2)
         }
     }
     
