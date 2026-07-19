@@ -117,11 +117,10 @@ public class RulesEngine {
                 }
             }
             
-            // Tide rate of change bonus
-            let hStart = TideEngine.calculateHeight(at: intervalStart, coordinate: location.coordinate)
-            let hEnd = TideEngine.calculateHeight(at: intervalEnd, coordinate: location.coordinate)
-            let tideMovement = abs(hEnd - hStart)
-            hourScore += tideMovement * 10.0 // add bonus for active tide movement (multiplied by 10 for Mediterranean ranges)
+            // Scientific Tidal Phase Activity Factor (Common Goby & Reef fish studies)
+            let midHourDate = intervalStart.addingTimeInterval(1800)
+            let tidalFactor = calculateTidalActivityFactor(date: midHourDate, tides: tides)
+            hourScore *= tidalFactor
             
             // Map score to Activity level
             let level: ActivityLevel
@@ -220,5 +219,38 @@ public class RulesEngine {
             dailyActivity: dailyLevel,
             hourlyIntervals: intervals
         )
+    }
+    
+    private static func calculateTidalActivityFactor(date: Date, tides: [TideEvent]) -> Double {
+        var minDiffHigh: Double? = nil
+        var minDiffLow: Double? = nil
+        
+        for event in tides {
+            let diffMinutes = event.time.timeIntervalSince(date) / 60.0
+            if event.type == .alta {
+                if minDiffHigh == nil || abs(diffMinutes) < abs(minDiffHigh!) {
+                    minDiffHigh = diffMinutes
+                }
+            } else {
+                if minDiffLow == nil || abs(diffMinutes) < abs(minDiffLow!) {
+                    minDiffLow = diffMinutes
+                }
+            }
+        }
+        
+        guard let mHigh = minDiffHigh, let mLow = minDiffLow else { return 1.0 }
+        
+        // Picco di attività: da 1h prima (-60m) a 30m dopo (+30m) l'alta marea
+        if mHigh >= -60.0 && mHigh <= 30.0 {
+            let distanceFromPeak = abs(mHigh + 15.0)
+            return 1.5 - (distanceFromPeak / 60.0) * 0.3
+        }
+        
+        // Fase di stanca (slack tide): minima attività, poca corrente
+        if abs(mHigh) > 150.0 && abs(mLow) > 150.0 {
+            return 0.7
+        }
+        
+        return 1.0
     }
 }

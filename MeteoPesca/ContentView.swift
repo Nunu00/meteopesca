@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var swellHeight: Double = 0.2
     @State private var surfaceTempDelta24h: Double = 0.0
     @State private var waterTempCelsius: Double = 20.0
+    @State private var isFetchingWeather: Bool = false
+    @State private var weatherErrorMessage: String? = nil
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -68,6 +70,7 @@ struct ContentView: View {
                                     customLatitude = String(format: "%.4f", newLoc.coordinate.latitude)
                                     customLongitude = String(format: "%.4f", newLoc.coordinate.longitude)
                                     calculateForecast()
+                                    updateWeatherAutomatically()
                                 }
                             }
                             .padding(.horizontal)
@@ -129,9 +132,28 @@ struct ContentView: View {
                         
                         // 1b. Environmental Conditions Card
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("Fattori Ambientali (Meteo Empirico)")
-                                .font(.headline)
-                                .foregroundColor(.white)
+                            HStack {
+                                Text("Meteo & Parametri Costieri")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                Spacer()
+                                if isFetchingWeather {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .teal))
+                                } else {
+                                    Button(action: updateWeatherAutomatically) {
+                                        Image(systemName: "arrow.clockwise")
+                                            .foregroundColor(.teal)
+                                            .font(.subheadline)
+                                    }
+                                }
+                            }
+                            
+                            if let errorMsg = weatherErrorMessage {
+                                Text(errorMsg)
+                                    .font(.caption2)
+                                    .foregroundColor(.red.opacity(0.8))
+                            }
                             
                             VStack(spacing: 16) {
                                 // Water Temp
@@ -418,8 +440,14 @@ struct ContentView: View {
                     }
                 }
             }
-            .onAppear(perform: calculateForecast)
-            .onChange(of: selectedDate) { _ in calculateForecast() }
+            .onAppear {
+                calculateForecast()
+                updateWeatherAutomatically()
+            }
+            .onChange(of: selectedDate) { _ in
+                calculateForecast()
+                updateWeatherAutomatically()
+            }
             .onChange(of: cloudCover) { _ in calculateForecast() }
             .onChange(of: windDirectionChange) { _ in calculateForecast() }
             .onChange(of: swellHeight) { _ in calculateForecast() }
@@ -434,6 +462,7 @@ struct ContentView: View {
             let customLoc = Location(name: "Coordinate Manuali", latitude: lat, longitude: lon)
             selectedLocation = customLoc
             calculateForecast()
+            updateWeatherAutomatically()
         }
     }
     
@@ -472,6 +501,32 @@ struct ContentView: View {
         )
         
         self.forecast = forecastResult
+    }
+    
+    private func updateWeatherAutomatically() {
+        let coord = selectedLocation.coordinate
+        isFetchingWeather = true
+        weatherErrorMessage = nil
+        
+        Task {
+            do {
+                let fetched = try await WeatherService.fetchWeather(latitude: coord.latitude, longitude: coord.longitude)
+                await MainActor.run {
+                    self.cloudCover = fetched.cloudCover
+                    self.windDirectionChange = fetched.windDirectionChange
+                    self.swellHeight = fetched.swellHeight
+                    self.surfaceTempDelta24h = fetched.surfaceTempDelta24h
+                    self.waterTempCelsius = fetched.waterTemp
+                    self.isFetchingWeather = false
+                    self.calculateForecast()
+                }
+            } catch {
+                await MainActor.run {
+                    self.weatherErrorMessage = "Meteo offline: impossibile aggiornare automaticamente."
+                    self.isFetchingWeather = false
+                }
+            }
+        }
     }
     
     private func timeString(_ date: Date?) -> String {

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2C5B42AF278A9C16008E1E25 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5B42AF278A9C16008E1E15 /* WeatherService.swift */; };
 		2C5B42AF278A9C16008E1D52 /* SwiftAA in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 2C5B42AF278A9C16008E1D32 /* SwiftAA */; };
 		2C5B42AF278A9C16008E1D53 /* SwiftAA in Frameworks */ = {isa = PBXBuildFile; productRef = 2C5B42AF278A9C16008E1D32 /* SwiftAA */; };
 		2C5B42AF278A9C16008E1D21 /* MeteoPescaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5B42AF278A9C16008E1D11 /* MeteoPescaApp.swift */; };
@@ -33,6 +34,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2C5B42AF278A9C16008E1E15 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		2C5B42AF278A9C16008E1D08 /* MeteoPesca.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MeteoPesca.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2C5B42AF278A9C16008E1D11 /* MeteoPescaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeteoPescaApp.swift; sourceTree = "<group>"; };
 		2C5B42AF278A9C16008E1D12 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 				2C5B42AF278A9C16008E1D13 /* AstronomyEngine.swift */,
 				2C5B42AF278A9C16008E1D14 /* TideEngine.swift */,
 				2C5B42AF278A9C16008E1D15 /* RulesEngine.swift */,
+				2C5B42AF278A9C16008E1E15 /* WeatherService.swift */,
 				2C5B42AF278A9C16008E1D16 /* Models.swift */,
 				2C5B42AF278A9C16008E1D17 /* Assets.xcassets */,
 			);
@@ -161,6 +164,7 @@
 				2C5B42AF278A9C16008E1D23 /* AstronomyEngine.swift in Sources */,
 				2C5B42AF278A9C16008E1D24 /* TideEngine.swift in Sources */,
 				2C5B42AF278A9C16008E1D25 /* RulesEngine.swift in Sources */,
+				2C5B42AF278A9C16008E1E25 /* WeatherService.swift in Sources */,
 				2C5B42AF278A9C16008E1D26 /* Models.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
