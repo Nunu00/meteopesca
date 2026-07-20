@@ -111,16 +111,26 @@ object TideEngine {
         val j2000Ms = calendar.timeInMillis
         val hoursSinceJ2000 = (date.time - j2000Ms) / 3600000.0
 
-        var height = 0.0
+        var rawHeight = 0.0
         for ((name, speed) in speeds) {
             val const = stationConsts[name]
             if (const != null) {
                 val speedRad = (speed * Math.PI) / 180.0
                 val phaseRad = (const.second * Math.PI) / 180.0
-                height += const.first * cos(speedRad * hoursSinceJ2000 - phaseRad)
+                rawHeight += const.first * cos(speedRad * hoursSinceJ2000 - phaseRad)
             }
         }
-        return height
+
+        // Daily constant coefficient (calculated at 12:00 local time)
+        val localCal = Calendar.getInstance().apply {
+            time = date
+            set(Calendar.HOUR_OF_DAY, 12)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val coeff = calculateTideCoefficient(localCal.time, coordinate)
+        return rawHeight * (coeff / 70.0)
     }
 
     fun calculateDailyTides(date: Date, coordinate: Coordinate): List<TideEvent> {
@@ -133,12 +143,12 @@ object TideEngine {
         }
         val startOfDay = cal.time
 
-        // Sample tide heights every 15 minutes for 24 hours (96 samples)
+        // Sample tide heights every 5 minutes for 24 hours (288 samples)
         val samples = mutableListOf<Pair<Date, Double>>()
-        for (i in 0..96) {
+        for (i in 0..288) {
             val sampleCal = Calendar.getInstance().apply {
                 time = startOfDay
-                add(Calendar.MINUTE, i * 15)
+                add(Calendar.MINUTE, i * 5)
             }
             val sampleDate = sampleCal.time
             val height = calculateHeight(sampleDate, coordinate)
@@ -162,21 +172,6 @@ object TideEngine {
             }
         }
 
-        // De-duplicate events occurring in the same 60-minute window
-        val filtered = mutableListOf<TideEvent>()
-        for (event in events) {
-            var tooClose = false
-            for (fEvent in filtered) {
-                if (abs(event.time.time - fEvent.time.time) < 3600000) {
-                    tooClose = true
-                    break
-                }
-            }
-            if (!tooClose) {
-                filtered.add(event)
-            }
-        }
-
-        return filtered.sortedBy { it.time }
+        return events.sortedBy { it.time }
     }
 }
