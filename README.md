@@ -20,7 +20,7 @@ L'applicazione è progettata per essere compilata automaticamente tramite **GitH
 ## 📲 Come installare l'app su iPhone
 
 ### 1. Clona il Repository e attiva il Workflow GitHub
-1. Carica questo codice sul tuo repository GitHub personale (`https://github.com/Nunu00/pescattiva`).
+1. Carica questo codice sul tuo repository GitHub personale (`https://github.com/Nunu00/previsioni-pesca`).
 2. Vai sulla scheda **Actions** del tuo repository su GitHub.
 3. Seleziona il workflow **Build Unsigned IPA** a sinistra e clicca su **Run workflow** (oppure fai un push sulla branch `main` per farlo partire automaticamente).
 4. Attendi il completamento della compilazione (circa 3-4 minuti, dato che scarica e compila `SwiftAA` e le sue dipendenze C++).
