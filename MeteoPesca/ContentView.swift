@@ -36,7 +36,7 @@ struct ContentView: View {
     private var calendarDays: [Date] {
         let calendar = Calendar.current
         guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedDate)) else { return [] }
-        let range = calendar.range(of: .day, in: .month, for: startOfMonth)!
+        guard let range = calendar.range(of: .day, in: .month, for: startOfMonth) else { return [] }
         
         var days: [Date] = []
         for day in range {
@@ -45,6 +45,52 @@ struct ContentView: View {
             }
         }
         return days
+    }
+    
+    private func waterTempForDate(_ date: Date) -> (temp: Double, message: String?) {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let dateKey = cacheKeyFormatter.string(from: startOfDay)
+        
+        if let cached = weatherCache[dateKey] {
+            return (cached.waterTemp, nil)
+        }
+        
+        let today = Date()
+        let startOfToday = calendar.startOfDay(for: today)
+        let daysDifference = calendar.dateComponents([.day], from: startOfToday, to: startOfDay).day ?? 0
+        let seasonalWaterTemp = climatologicalMean(for: startOfDay)
+        
+        if daysDifference < -1 {
+            return (seasonalWaterTemp, "* Mostrati parametri medi climatologici storici (data passata).")
+        } else if daysDifference > 7 {
+            // Anomaly Persistence Forecast with exponential decay (15 days time scale)
+            let todayKey = cacheKeyFormatter.string(from: today)
+            let currentSst = weatherCache[todayKey]?.waterTemp ?? 20.0
+            
+            let day7Date = calendar.date(byAdding: .day, value: 7, to: today) ?? today
+            let day7Key = cacheKeyFormatter.string(from: day7Date)
+            let day7SST = weatherCache[day7Key]?.waterTemp ?? currentSst
+            let day7Climatology = climatologicalMean(for: day7Date)
+            let anomalyAtDay7 = day7SST - day7Climatology
+            
+            let daysAhead = Double(daysDifference - 7)
+            let tau = decorrelationTime(for: startOfDay)
+            let decayFactor = exp(-daysAhead / tau)
+            let projectedSst = seasonalWaterTemp + anomalyAtDay7 * decayFactor
+            
+            let anomalyPercent = Int(round(decayFactor * 100.0))
+            let message: String?
+            if anomalyPercent > 10 {
+                message = String(format: "* Anomalia termica persistente al %d%% (temperatura prevista: %.1f°C).", anomalyPercent, projectedSst)
+            } else {
+                message = "* Mostrati parametri medi climatologici storici (temperatura prevista)."
+            }
+            return (projectedSst, message)
+        } else {
+            // Within forecast window but cache missing (e.g. offline/loading)
+            return (seasonalWaterTemp, nil)
+        }
     }
     
     private func activityForDate(_ date: Date) -> ActivityLevel {
@@ -78,29 +124,12 @@ struct ContentView: View {
             sst = cached.waterTemp
             windSpeed = cached.windSpeedMps
         } else {
-            let today = Date()
-            let daysDifference = calendar.dateComponents([.day], from: calendar.startOfDay(for: today), to: startOfDay).day ?? 0
-            let seasonalWaterTemp = climatologicalMean(for: startOfDay)
-            
-            if daysDifference < -1 {
-                sst = seasonalWaterTemp
-            } else {
-                // SST Anomaly Persistence Forecast (exponential decay with decorrelationTime = 15 days)
-                let todayKey = cacheKeyFormatter.string(from: today)
-                let currentSst = weatherCache[todayKey]?.waterTemp ?? 20.0
-                
-                // Anomaly evaluated at Day 7 (end of forecast window) to guarantee continuity
-                let day7Date = calendar.date(byAdding: .day, value: 7, to: today) ?? today
-                let day7Key = cacheKeyFormatter.string(from: day7Date)
-                let day7SST = weatherCache[day7Key]?.waterTemp ?? currentSst
-                let day7Climatology = climatologicalMean(for: day7Date)
-                let anomalyAtDay7 = day7SST - day7Climatology
-                
-                let daysAhead = Double(daysDifference - 7)
-                let tau = decorrelationTime(for: startOfDay)
-                let decayFactor = exp(-daysAhead / tau)
-                sst = seasonalWaterTemp + anomalyAtDay7 * decayFactor
-            }
+            cloud = 20.0
+            wind = 0.0
+            swell = 0.2
+            delta = 0.0
+            windSpeed = 4.0
+            sst = waterTempForDate(startOfDay).temp
         }
         
         let weatherFactor = WeatherFactor(
@@ -803,16 +832,6 @@ struct ContentView: View {
     private func applyWeatherForSelectedDate() {
         let dateKey = cacheKeyFormatter.string(from: selectedDate)
         
-        let calendar = Calendar.current
-        let today = Date()
-        let startOfToday = calendar.startOfDay(for: today)
-        let startOfSelected = calendar.startOfDay(for: selectedDate)
-        let daysDifference = calendar.dateComponents([.day], from: startOfToday, to: startOfSelected).day ?? 0
-        
-        let seasonalWaterTemp = climatologicalMean(for: startOfSelected)
-        let todayKey = cacheKeyFormatter.string(from: today)
-        let currentSst = weatherCache[todayKey]?.waterTemp ?? 20.0
-        
         if let cached = weatherCache[dateKey] {
             // Selected date is within the 7-day forecast!
             self.cloudCover = cached.cloudCover
@@ -830,33 +849,9 @@ struct ContentView: View {
             self.surfaceTempDelta24h = 0.0
             self.windSpeedMps = 4.0
             
-            if daysDifference < -1 {
-                // Past date: just use climatological water temp
-                self.waterTempCelsius = seasonalWaterTemp
-                self.weatherErrorMessage = "* Mostrati parametri medi climatologici storici (data passata)."
-            } else {
-                // Future date beyond 7 days: Anomaly Persistence Forecast with exponential decay (15 days time scale)
-                // Anomaly evaluated at Day 7 to guarantee continuity
-                let day7Date = calendar.date(byAdding: .day, value: 7, to: today) ?? today
-                let day7Key = cacheKeyFormatter.string(from: day7Date)
-                let day7SST = weatherCache[day7Key]?.waterTemp ?? currentSst
-                let day7Climatology = climatologicalMean(for: day7Date)
-                let anomalyAtDay7 = day7SST - day7Climatology
-                
-                let daysAhead = Double(daysDifference - 7)
-                let tau = decorrelationTime(for: startOfSelected)
-                let decayFactor = exp(-daysAhead / tau)
-                let projectedSst = seasonalWaterTemp + anomalyAtDay7 * decayFactor
-                
-                self.waterTempCelsius = projectedSst
-                
-                let anomalyPercent = Int(round(decayFactor * 100.0))
-                if anomalyPercent > 10 {
-                    self.weatherErrorMessage = String(format: "* Anomalia termica persistente al %d%% (temperatura prevista: %.1f°C).", anomalyPercent, projectedSst)
-                } else {
-                    self.weatherErrorMessage = "* Temperatura allineata alla media climatologica storica (data lontana)."
-                }
-            }
+            let tempResult = waterTempForDate(selectedDate)
+            self.waterTempCelsius = tempResult.temp
+            self.weatherErrorMessage = tempResult.message
         }
         
         self.calculateForecast()

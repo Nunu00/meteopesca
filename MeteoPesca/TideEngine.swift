@@ -90,11 +90,23 @@ public class TideEngine {
         // Spring amplitude is physically the sum of the M2 and S2 amplitudes
         return m2Amp + s2Amp
     }
+    private static var coeffCache: [String: Double] = [:]
     
     /// Calculates the tide coefficient (ranges from 20 to 120) based on lagged moon phase & distance.
     /// Incorporates the 1.5-day astronomical lag (age of the tide).
     public static func calculateTideCoefficient(at date: Date, coordinate: Coordinate) -> Double {
         let station = findNearestStation(to: coordinate)
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateKey = formatter.string(from: startOfDay)
+        let cacheKey = "\(station.name)_\(dateKey)"
+        
+        if let cached = coeffCache[cacheKey] {
+            return cached
+        }
+        
         let lagSeconds = station.tideLagDays * 24.0 * 3600.0
         let laggedDate = date.addingTimeInterval(-lagSeconds)
         let ast = AstronomyEngine.calculateAstronomy(date: laggedDate, coordinate: coordinate)
@@ -106,7 +118,9 @@ public class TideEngine {
         let normDist = (406700.0 - ast.moonDistance) / (406700.0 - 356400.0)
         let distAdj = (normDist - 0.5) * 30.0
         
-        return max(20.0, min(120.0, baseCoeff + distAdj))
+        let result = max(20.0, min(120.0, baseCoeff + distAdj))
+        coeffCache[cacheKey] = result
+        return result
     }
 
     /// Computes the tide height at a specific date and time for given coordinates
@@ -120,7 +134,7 @@ public class TideEngine {
         var calendar = Calendar.current
         calendar.timeZone = TimeZone(secondsFromGMT: 0)! // J2000 is UTC
         let components = DateComponents(year: 2000, month: 1, day: 1, hour: 12, minute: 0, second: 0)
-        let j2000 = calendar.date(from: components)!
+        let j2000 = calendar.date(from: components) ?? Date()
         
         // Hours since J2000
         let timeInterval = date.timeIntervalSince(j2000)

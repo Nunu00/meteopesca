@@ -36,8 +36,8 @@ object WeatherService {
     }
 
     suspend fun fetch7DayWeather(latitude: Double, longitude: Double): Map<String, FetchedWeatherData> = withContext(Dispatchers.IO) {
-        val forecastUrl = "https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&hourly=cloud_cover,wind_direction_10m,temperature_2m,wind_speed_10m&wind_speed_unit=ms&forecast_days=7"
-        val marineUrl = "https://marine-api.open-meteo.com/v1/marine?latitude=$latitude&longitude=$longitude&hourly=sea_surface_temperature,wave_height&forecast_days=7"
+        val forecastUrl = "https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&hourly=cloud_cover,wind_direction_10m,temperature_2m,wind_speed_10m&wind_speed_unit=ms&forecast_days=7&timezone=auto"
+        val marineUrl = "https://marine-api.open-meteo.com/v1/marine?latitude=$latitude&longitude=$longitude&hourly=sea_surface_temperature,wave_height&forecast_days=7&timezone=auto"
         
         val forecastResponse = getUrlContent(forecastUrl)
         val forecastJson = JSONObject(forecastResponse)

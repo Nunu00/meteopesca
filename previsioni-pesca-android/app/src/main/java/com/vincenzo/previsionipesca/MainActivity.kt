@@ -288,38 +288,16 @@ fun MainScreen() {
             surfaceTempDelta24h = cached.surfaceTempDelta24h
             waterTempCelsius = cached.waterTemp
             windSpeedMps = cached.windSpeedMps
+            weatherErrorMessage = null
         } else {
             cloudCover = 20.0
             windDirectionChange = 0.0
             swellHeight = 0.2
             surfaceTempDelta24h = 0.0
             windSpeedMps = 4.0
-
-            val today = Date()
-            val diffDays = ((selectedDate.time - today.time) / 86400000).toInt()
-            val seasonalWaterTemp = climatologicalMean(selectedDate)
-
-            if (diffDays < -1) {
-                waterTempCelsius = seasonalWaterTemp
-            } else {
-                val todayCal = Calendar.getInstance().apply { time = today }
-                val todayKey = String.format("%04d-%02d-%02d", todayCal.get(Calendar.YEAR), todayCal.get(Calendar.MONTH) + 1, todayCal.get(Calendar.DAY_OF_MONTH))
-                val currentSst = weatherCache[todayKey]?.waterTemp ?: 20.0
-
-                val day7Cal = Calendar.getInstance().apply {
-                    time = today
-                    add(Calendar.DAY_OF_MONTH, 7)
-                }
-                val day7Key = String.format("%04d-%02d-%02d", day7Cal.get(Calendar.YEAR), day7Cal.get(Calendar.MONTH) + 1, day7Cal.get(Calendar.DAY_OF_MONTH))
-                val day7SST = weatherCache[day7Key]?.waterTemp ?: currentSst
-                val day7Climatology = climatologicalMean(day7Cal.time)
-                val anomalyAtDay7 = day7SST - day7Climatology
-
-                val daysAhead = (diffDays - 7).toDouble()
-                val tau = decorrelationTime(selectedDate)
-                val decayFactor = exp(-daysAhead / tau)
-                waterTempCelsius = seasonalWaterTemp + anomalyAtDay7 * decayFactor
-            }
+            val tempResult = waterTempForDate(selectedDate, weatherCache)
+            waterTempCelsius = tempResult.first
+            weatherErrorMessage = tempResult.second
         }
     }
 

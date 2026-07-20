@@ -231,6 +231,8 @@ public class RulesEngine {
             weatherMult: weatherMult,
             fWaterTemp: fWaterTemp,
             fPhase: fPhase,
+            fDist: fDist,
+            fCoeff: fCoeff,
             maxAmplitude: maxAmplitude,
             periods: periods
         )
@@ -323,6 +325,8 @@ public class RulesEngine {
         weatherMult: Double,
         fWaterTemp: Double,
         fPhase: Double,
+        fDist: Double,
+        fCoeff: Double,
         maxAmplitude: Double,
         periods: [SolunarPeriod]
     ) -> [ActivityWindow] {
@@ -356,8 +360,8 @@ public class RulesEngine {
             let tideFactor = calculateTidalActivityFactor(date: midSlotDate, tides: tides, coordinate: location.coordinate, maxAmplitude: maxAmplitude)
             
             let baseScore = 0.5
-            var slotScore = baseScore * solunarFactor * tideFactor * weatherMult * fWaterTemp * fPhase
-            slotScore = min(slotScore, 3.2)
+            var slotScore = baseScore * solunarFactor * tideFactor * weatherMult * fWaterTemp * fPhase * fDist * fCoeff
+            slotScore = min(slotScore, 1.8)
             
             let breakdown = ScoreBreakdown(
                 tide: tideFactor,
@@ -426,7 +430,7 @@ public class RulesEngine {
             guard endDate.timeIntervalSince(startDate) >= 45.0 * 60.0 else { continue }
             
             let label = classifyScore(peakScore)
-            let efficacy = min(100, Int(round((peakScore / 3.2) * 100.0)))
+            let efficacy = min(100, Int(round((peakScore / 1.8) * 100.0)))
             let reasons = topReasons(from: smoothedSlots[idx].breakdown)
             
             let candidate = ActivityWindow(
@@ -453,13 +457,13 @@ public class RulesEngine {
     }
     
     private static func classifyScore(_ score: Double) -> ActivityLevel {
-        if score < 0.6 {
+        if score < 0.45 {
             return .bassa
-        } else if score < 1.2 {
+        } else if score < 0.90 {
             return .moderata
-        } else if score < 1.8 {
+        } else if score < 1.26 {
             return .buona
-        } else if score < 2.5 {
+        } else if score < 1.62 {
             return .alta
         } else {
             return .moltoAlta

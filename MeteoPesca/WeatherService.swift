@@ -13,7 +13,7 @@ public class WeatherService {
     
     public static func fetch7DayWeather(latitude: Double, longitude: Double) async throws -> [String: FetchedWeatherData] {
         // 1. Fetch Forecast Data (Atmospheric Conditions for 7 days)
-        let forecastUrlString = "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&hourly=cloud_cover,wind_direction_10m,temperature_2m,wind_speed_10m&wind_speed_unit=ms&forecast_days=7"
+        let forecastUrlString = "https://api.open-meteo.com/v1/forecast?latitude=\(latitude)&longitude=\(longitude)&hourly=cloud_cover,wind_direction_10m,temperature_2m,wind_speed_10m&wind_speed_unit=ms&forecast_days=7&timezone=auto"
         guard let forecastUrl = URL(string: forecastUrlString) else {
             throw URLError(.badURL)
         }
@@ -29,7 +29,7 @@ public class WeatherService {
         let hourlyWindSpeed = hourly?["wind_speed_10m"] as? [Double] ?? []
         
         // 2. Fetch Marine Data (Native Sea Surface Temperature & Swell Height for 7 days)
-        let marineUrlString = "https://marine-api.open-meteo.com/v1/marine?latitude=\(latitude)&longitude=\(longitude)&hourly=sea_surface_temperature,wave_height&forecast_days=7"
+        let marineUrlString = "https://marine-api.open-meteo.com/v1/marine?latitude=\(latitude)&longitude=\(longitude)&hourly=sea_surface_temperature,wave_height&forecast_days=7&timezone=auto"
         var hourlySst: [Double] = []
         var hourlyWave: [Double] = []
         
@@ -59,12 +59,12 @@ public class WeatherService {
             let dateStr = String(hourlyTime[startIndex].prefix(10))
             
             // Slice hourly values
-            let cloudSlice = hourlyCloud.count > endIndex ? Array(hourlyCloud[startIndex..<endIndex]) : []
-            let windSlice = hourlyWind.count > endIndex ? Array(hourlyWind[startIndex..<endIndex]) : []
-            let airSlice = hourlyAir.count > endIndex ? Array(hourlyAir[startIndex..<endIndex]) : []
-            let sstSlice = hourlySst.count > endIndex ? Array(hourlySst[startIndex..<endIndex]) : []
-            let waveSlice = hourlyWave.count > endIndex ? Array(hourlyWave[startIndex..<endIndex]) : []
-            let windSpeedSlice = hourlyWindSpeed.count > endIndex ? Array(hourlyWindSpeed[startIndex..<endIndex]) : []
+            let cloudSlice = hourlyCloud.count >= endIndex ? Array(hourlyCloud[startIndex..<endIndex]) : []
+            let windSlice = hourlyWind.count >= endIndex ? Array(hourlyWind[startIndex..<endIndex]) : []
+            let airSlice = hourlyAir.count >= endIndex ? Array(hourlyAir[startIndex..<endIndex]) : []
+            let sstSlice = hourlySst.count >= endIndex ? Array(hourlySst[startIndex..<endIndex]) : []
+            let waveSlice = hourlyWave.count >= endIndex ? Array(hourlyWave[startIndex..<endIndex]) : []
+            let windSpeedSlice = hourlyWindSpeed.count >= endIndex ? Array(hourlyWindSpeed[startIndex..<endIndex]) : []
             
             // Calculate averages / representatives
             let avgCloud = cloudSlice.isEmpty ? 20.0 : cloudSlice.reduce(0.0, +) / Double(cloudSlice.count)

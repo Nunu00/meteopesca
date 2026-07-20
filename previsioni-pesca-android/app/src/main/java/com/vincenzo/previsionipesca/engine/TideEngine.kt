@@ -86,8 +86,15 @@ object TideEngine {
         return m2Amp + s2Amp
     }
 
+    private val coeffCache = mutableMapOf<String, Double>()
+
     fun calculateTideCoefficient(date: Date, coordinate: Coordinate): Double {
         val station = findNearestStation(coordinate)
+        val dateKey = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(date)
+        val cacheKey = "${station.name}_$dateKey"
+        
+        coeffCache[cacheKey]?.let { return it }
+
         val lagMs = (station.tideLagDays * 24.0 * 3600.0 * 1000.0).toLong()
         val laggedDate = Date(date.time - lagMs)
         val ast = AstronomyEngine.calculateAstronomy(laggedDate, coordinate)
@@ -96,7 +103,9 @@ object TideEngine {
         val normDist = (406700.0 - ast.moonDistance) / (406700.0 - 356400.0)
         val distAdj = (normDist - 0.5) * 30.0
 
-        return max(20.0, min(120.0, baseCoeff + distAdj))
+        val result = max(20.0, min(120.0, baseCoeff + distAdj))
+        coeffCache[cacheKey] = result
+        return result
     }
 
     fun calculateHeight(date: Date, coordinate: Coordinate): Double {

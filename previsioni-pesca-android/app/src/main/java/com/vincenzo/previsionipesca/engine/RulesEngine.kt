@@ -232,6 +232,8 @@ object RulesEngine {
             weatherMult = weatherMult,
             fWaterTemp = fWaterTemp,
             fPhase = fPhase,
+            fDist = fDist,
+            fCoeff = fCoeff,
             maxAmplitude = maxAmplitude,
             periods = periods
         )
@@ -340,6 +342,8 @@ object RulesEngine {
         weatherMult: Double,
         fWaterTemp: Double,
         fPhase: Double,
+        fDist: Double,
+        fCoeff: Double,
         maxAmplitude: Double,
         periods: List<SolunarPeriod>
     ): List<ActivityWindow> {
@@ -378,8 +382,8 @@ object RulesEngine {
             val tideFactor = calculateTidalActivityFactor(midSlotDate, tides, location.coordinate, maxAmplitude)
 
             val baseScore = 0.5
-            var slotScore = baseScore * solunarFactor * tideFactor * weatherMult * fWaterTemp * fPhase
-            slotScore = min(slotScore, 3.2)
+            var slotScore = baseScore * solunarFactor * tideFactor * weatherMult * fWaterTemp * fPhase * fDist * fCoeff
+            slotScore = min(slotScore, 1.8)
 
             val breakdown = ScoreBreakdown(
                 tide = tideFactor,
@@ -444,7 +448,7 @@ object RulesEngine {
             if (endDate.time - startDate.time < 45 * 60 * 1000) continue
 
             val label = classifyScore(peakScore)
-            val efficacy = min(100, ((peakScore / 3.2) * 100.0).roundToInt())
+            val efficacy = min(100, ((peakScore / 1.8) * 100.0).roundToInt())
             val reasons = topReasons(smoothedSlots[idx].breakdown)
 
             val candidate = ActivityWindow(
@@ -473,10 +477,10 @@ object RulesEngine {
 
     private fun classifyScore(score: Double): ActivityLevel {
         return when {
-            score < 0.6 -> ActivityLevel.BASSA
-            score < 1.2 -> ActivityLevel.MODERATA
-            score < 1.8 -> ActivityLevel.BUONA
-            score < 2.5 -> ActivityLevel.ALTA
+            score < 0.45 -> ActivityLevel.BASSA
+            score < 0.90 -> ActivityLevel.MODERATA
+            score < 1.26 -> ActivityLevel.BUONA
+            score < 1.62 -> ActivityLevel.ALTA
             else -> ActivityLevel.MOLTO_ALTA
         }
     }
